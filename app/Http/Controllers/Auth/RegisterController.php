@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\User;
+use Auth;
+use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -48,9 +50,27 @@ class RegisterController extends Controller
      */
     protected function validator(array $data)
     {
+
+        $uniqueEmail =  Rule::unique('users')->where(function ($query) use ($data){
+                return $query->where('email', $data['email']??'')
+                ->where('user_type', $data['user_type']??'');
+            });
+        $uniquePhone =  Rule::unique('users')->where(function ($query) use ($data){
+                return $query->where('phone', $data['phone']??'')
+                ->where('user_type', $data['user_type']??'');
+            });
         return Validator::make($data, [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'phone' => ['required','max:10','min:10','regex:/^[0-9]*$/',Rule::unique('users')->where(function ($query) use ($data){
+                return $query->where('phone', $data['phone']??'')
+                ->where('user_type', $data['user_type']??'');
+            })],
+            'user_type' => ['required'],
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->where(function ($query) use ($data){
+                return $query->where('email', $data['email']??'')
+                ->where('user_type', $data['user_type']??'');})],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
         ]);
     }
@@ -63,9 +83,22 @@ class RegisterController extends Controller
      */
     protected function create(array $data)
     {
+        // dd($data
+        $request = request();
+        $profileImage = $request->file('profile_picture');
+        $profileImageSaveAsName = time() . Auth::id() . "-profile." . $profileImage->getClientOriginalExtension();
+
+        $upload_path = 'profile_images/';
+        $profile_image_url = $upload_path . $profileImageSaveAsName;
+        $success = $profileImage->move($upload_path, $profileImageSaveAsName);
+
         return User::create([
-            'name' => $data['name'],
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'phone' => $data['phone'],
+            'user_type' => $data['user_type'],
             'email' => $data['email'],
+            'profile_picture' => $profile_image_url,
             'password' => Hash::make($data['password']),
         ]);
     }

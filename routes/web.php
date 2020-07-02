@@ -21,10 +21,19 @@ Route::get('/home', 'HomeController@index')->name('home');
 Route::get('/userlist', function(){
 	return view('userlist');
 });
-Route::post('/serverSide', [
+Route::post('/serverSideSeller', [
     'as'   => 'serverSide',
     'uses' => function () {
-        $users = App\User::all();
-        return Datatables::of($users)->make();
+        $users = App\User::where('user_type',1)->get();
+        return DataTables::of($users)->make();
     }
 ]);
+
+Route::post('/serverSideBuyer', [
+    'as'   => 'serverSide',
+    'uses' => function () {
+        $users = App\User::where('user_type',2)->get();
+        return DataTables::of($users)->make();
+    }
+]);
+
